@@ -1,5 +1,6 @@
-from .book_repository import *  
+from .book_repository import *
 
+# Funciones de servicio (no necesitan modificarse)
 def get_book_service(book_id):  
     return get_book(book_id)  
 

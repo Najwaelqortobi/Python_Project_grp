@@ -1,92 +1,103 @@
-import sqlite3
-from flask import jsonify
+from sqlalchemy.orm import Session
+from .models import Book, SessionLocal
 
-# Conexión a la base de datos
-def get_db_connection():
-    conn = sqlite3.connect('library.db')
-    conn.row_factory = sqlite3.Row  # Acceso por nombres de columna
-    return conn
+def get_db_session():
+    return SessionLocal()
 
-# Operaciones CRUD
 def get_book(book_id):
-    conn = get_db_connection()
+    session = get_db_session()
     try:
-        book = conn.execute(
-            'SELECT * FROM books WHERE id = ?', (book_id,)
-        ).fetchone()
-        return dict(book) if book else None
+        book = session.query(Book).filter_by(id=book_id).first()
+        return {
+            "id": book.id,
+            "title": book.title,
+            "author": book.author,
+            "year": book.year
+        } if book else None
+    except Exception as e:
+        print(f"Error en get_book: {str(e)}")
+        return None
     finally:
-        conn.close()
+        session.close()
 
 def get_all_books():
-    conn = get_db_connection()
+    session = get_db_session()
     try:
-        books = conn.execute('SELECT * FROM books').fetchall()
-        return [dict(book) for book in books]
+        books = session.query(Book).all()
+        return [{
+            "id": book.id,
+            "title": book.title,
+            "author": book.author,
+            "year": book.year
+        } for book in books]
+    except Exception as e:
+        print(f"Error en get_all_books: {str(e)}")
+        return []
     finally:
-        conn.close()
+        session.close()
 
 def add_book(new_book):
-    conn = get_db_connection()
+    session = get_db_session()
     try:
-        conn.execute(
-            'INSERT INTO books (id, title, author, year) VALUES (?, ?, ?, ?)',
-            (new_book['id'], new_book['title'], new_book['author'], new_book['year'])
-        )
-        conn.commit()
+        book = Book(**new_book)
+        session.add(book)
+        session.commit()
+    except Exception as e:
+        print(f"Error en add_book: {str(e)}")
+        session.rollback()
     finally:
-        conn.close()
+        session.close()
 
 def update_book(book_id, updated_data):
-    conn = get_db_connection()
+    session = get_db_session()
     try:
-        conn.execute(
-            '''UPDATE books
-            SET title = ?, author = ?, year = ?
-            WHERE id = ?''',
-            (updated_data['title'], updated_data['author'], updated_data['year'], book_id)
-        )
-        conn.commit()
+        book = session.query(Book).filter_by(id=book_id).first()
+        if book: #aqui no esta permitido cambiar el id de un libro si queremos hacerlo  tenemos que agregar la linea :
+            #if 'id' in updated_data:
+                #book.id = updated_data['id']
+            book.title = updated_data.get('title', book.title)
+            book.author = updated_data.get('author', book.author)
+            book.year = updated_data.get('year', book.year)    
+          
+            session.commit()
+    except Exception as e:
+        print(f"Error en update_book: {str(e)}")
+        session.rollback()
     finally:
-        conn.close()
+        session.close()
 
 def delete_book(book_id):
-    conn = get_db_connection()
+    session = get_db_session()
     try:
-        conn.execute('DELETE FROM books WHERE id = ?', (book_id,))
-        conn.commit()
+        book = session.query(Book).filter_by(id=book_id).first()
+        if book:
+            session.delete(book)
+            session.commit()
+    except Exception as e:
+        print(f"Error en delete_book: {str(e)}")
+        session.rollback()
     finally:
-        conn.close()
+        session.close()
 
-# Crear tabla si no existe y poblar con datos iniciales
 def init_db():
-    conn = get_db_connection()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS books (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            author TEXT NOT NULL,
-            year INTEGER
-        )
-    ''')
+    from .models import Base, engine
+    Base.metadata.create_all(engine)  # Crear tablas aquí
     
-    # Verificar si la tabla está vacía
-    cursor = conn.execute("SELECT COUNT(*) FROM books")
-    if cursor.fetchone()[0] == 0:  # Si no hay registros
-        # Insertar libros de ejemplo
-        libros_ejemplo = [
-            ('1', 'Cien años de soledad', 'Gabriel García Márquez', 1967),
-            ('2', '1984', 'George Orwell', 1949),
-            ('3', 'Don Quijote de la Mancha', 'Miguel de Cervantes', 1605),
-            ('4', 'El principito', 'Antoine de Saint-Exupéry', 1943)
-        ]
-        conn.executemany(
-            'INSERT INTO books (id, title, author, year) VALUES (?, ?, ?, ?)',
-            libros_ejemplo
-        )
-        conn.commit()
-        print("✅ 4 libros insertados en la base de datos")
-    else:
-        print("ℹ️ La base de datos ya contiene registros")
-    
-    conn.close()
+    session = get_db_session()
+    try:
+        if session.query(Book).count() == 0:
+            libros_ejemplo = [
+                Book(id='1', title='Cien años de soledad', author='Gabriel García Márquez', year=1967),
+                Book(id='2', title='1984', author='George Orwell', year=1949),
+                Book(id='3', title='Don Quijote de la Mancha', author='Miguel de Cervantes', year=1605),
+                Book(id='4', title='El principito', author='Antoine de Saint-Exupéry', year=1943)
+            ]
+            session.bulk_save_objects(libros_ejemplo)
+            session.commit()
+            print("✅ 4 libros insertados en la base de datos")
+        else:
+            print("ℹ️ La base de datos ya contiene registros")
+    except Exception as e:
+        print(f"Error en init_db: {str(e)}")
+    finally:
+        session.close()
