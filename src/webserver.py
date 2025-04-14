@@ -71,12 +71,18 @@ def books_with_authors_route():
     books = get_books_authors()  # Usa el servicio existente  
     return jsonify(books)  
 
-
+#Mostrar porcentage de ventas
+@app.route("/sales/porcentage", methods=["GET"])
+def sales_porcentage_route():
+    sales_data = get_sales_porcentage()
+    return jsonify(sales_data)
 
 @app.route("/", methods=["GET"])  
 def hello():  
     return "API de Biblioteca"  
 
+
+
 # Archivo de entrada (main.py)
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=6000)  # Permite conexiones desde cualquier IP
+    app.run(host='0.0.0.0', port=2000)  # Permite conexiones desde cualquier IP
