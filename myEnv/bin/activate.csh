@@ -9,7 +9,7 @@ alias deactivate 'test $?_OLD_VIRTUAL_PATH != 0 && setenv PATH "$_OLD_VIRTUAL_PA
 # Unset irrelevant variables.
 deactivate nondestructive
 
-setenv VIRTUAL_ENV '/home/penascalf5/Documentos/Primer-proyecto-python Con Flask/myEnv'
+setenv VIRTUAL_ENV '/home/penascalf5/Documentos/Proyecto-Python con flask/API-BiblioBook_python-Con-Flask/myEnv'
 
 set _OLD_VIRTUAL_PATH="$PATH"
 setenv PATH "$VIRTUAL_ENV/"bin":$PATH"
